@@ -13,6 +13,8 @@ import { Response } from 'express';
 import { LoginUserDto } from './dto/login-user.dto';
 import { LoginGuard } from './guards/login.guard';
 import { AuthService } from './auth.service';
+import { RefreshJwtGuard } from './guards/refresh-jwt.guard';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -43,7 +45,9 @@ export class AuthController {
     const access = await this.authService.generateAccessToken(user);
 
     // generate refresh token
-    const refresh = await this.authService.generateRefreshToken(user._id as string);
+    const refresh = await this.authService.generateRefreshToken(
+      user._id as string,
+    );
 
     res.statusCode = HttpStatus.OK;
     return res.send({
@@ -51,5 +55,41 @@ export class AuthController {
       ...refresh,
       username: user.username,
     });
+  }
+
+  @UseGuards(RefreshJwtGuard)
+  @Post('refresh')
+  async refreshToken(
+    @Body()
+    refreshTokenDto: RefreshTokenDto,
+    @Res() res: Response,
+  ) {
+    const validToken = this.authService.verifyToken(
+      refreshTokenDto.refresh_token,
+    );
+    const user = await this.usersService.findOne(refreshTokenDto.username);
+
+    const access = this.authService.generateAccessToken(user);
+
+    if (validToken?.error) {
+      if (validToken?.error === 'jwt expired') {
+        const refresh = await this.authService.generateRefreshToken(
+          user._id as string,
+        );
+        res.statusCode = HttpStatus.OK;
+        return res.send({ ...access, ...refresh });
+      } else {
+        res.statusCode = HttpStatus.BAD_REQUEST;
+        return res.send({
+          error: validToken?.error,
+        });
+      }
+    } else {
+      res.statusCode = HttpStatus.BAD_REQUEST;
+      return res.send({
+        ...access,
+        refresh_token: refreshTokenDto.refresh_token,
+      });
+    }
   }
 }
