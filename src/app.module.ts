@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { MongooseConfigService } from './config/MongooseConfigService';
 import configuration from './config/configuration';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import configuration from './config/configuration';
       // create dynamic module without async
       load: [configuration],
     }),
+    UsersModule,
   ],
 })
 export class AppModule {}
