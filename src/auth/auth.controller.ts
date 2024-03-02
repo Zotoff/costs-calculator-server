@@ -7,9 +7,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { UsersService } from 'src/users/users.service';
-import { CreateUserDto } from './create-user.dto';
+import { CreateUserDto } from './dto/create-user.dto';
 import { RegistrationGuard } from './guards/registration.guard';
 import { Response } from 'express';
+import { LoginUserDto } from './dto/login-user.dto';
+import { LoginGuard } from './guards/login.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -26,5 +28,16 @@ export class AuthController {
 
     res.statusCode = HttpStatus.CREATED;
     return res.send('user created');
+  }
+
+  @UseGuards(LoginGuard)
+  @Post('login')
+  async loginUser(@Body() loginUserDto: LoginUserDto, @Res() res: Response) {
+    const user = await this.usersService.login(loginUserDto);
+
+    res.statusCode = HttpStatus.OK;
+    return res.send({
+      username: user.username,
+    });
   }
 }
